@@ -5,10 +5,12 @@ namespace App\Repositories;
 
 use App\Models\File;
 use App\Models\Group;
+use Illuminate\Support\Facades\Storage;
 
 
 class FileRepository
 {
+
     public function create(array $data): File
     {
         return File::create($data);
@@ -22,6 +24,14 @@ class FileRepository
     public function updateApprovalStatus(int $fileId, string $status): bool
     {
         return File::where('id', $fileId)->update(['approval_status' => $status]);
+    }
+
+    public function deleteFile($fileId)
+    {
+        $file = File::find($fileId);
+        $file->delete();
+        Storage::delete($file->path);
+        return $this->successResponse($file, 'File deleted successfully.');
     }
 
 
@@ -40,6 +50,11 @@ class FileRepository
             $query->where('groups.id', $groupId);
         })
             ->where('approval_status', 'approved')
+            ->with('backups')
             ->get();
     }
+
+
+
+
 }

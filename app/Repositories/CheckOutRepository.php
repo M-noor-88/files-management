@@ -8,15 +8,27 @@ use App\Models\Backup;
 use Illuminate\Support\Facades\Storage;
 use Exception;
 use App\Models\Checkout;
+use Illuminate\Support\Facades\Auth;
+use function Laravel\Prompts\error;
 
 class CheckOutRepository
 {
 
+    /**
+     * @throws Exception
+     */
     public function findFileInGroupByName(int $groupId, string $fileName): ?File
     {
-        return File::whereHas('groups', function ($query) use ($groupId) {
+        $file = File::whereHas('groups', function ($query) use ($groupId) {
             $query->where('groups.id', $groupId);
         })->where('name', $fileName)->first();
+        if (!$file) {
+            throw new Exception("The file $fileName does not exist in this group");
+        }
+        if($file->status == 'free'){
+            throw new Exception("The file $fileName is already checked out.");
+        }
+        return $file;
     }
 
     public function findByNameAndGroup(string $fileName, int $groupId)
@@ -62,13 +74,16 @@ class CheckOutRepository
         return File::where('id', $fileId)->lockForUpdate()->first();
     }
 
-    public function checkOutFile(int $fileId, int $userId, string $action): bool
+    public function checkOutFile(int $fileId, string $action): bool
     {
-        return Checkout::create([
+        $userId = Auth::id();
+        $actionTime = now()->format('Y-m-d:H-m');
+
+        return (bool)Checkout::create([
             'file_id' => $fileId,
             'user_id' => $userId,
             'action' => $action,
-            'action_time' => now()->format('Y-m-d:H-m'),
-        ]) ? true : false;
+            'action_time' => $actionTime,
+        ]);
     }
 }

@@ -9,6 +9,10 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * @method static find($checkInUser_id)
+ * @method static where(string $string, string $string1, int|string|null $id)
+ */
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
@@ -45,17 +49,34 @@ class User extends Authenticatable
     ];
 
 
+     // Relationship to groups the user owns
+     public function ownedGroups()
+     {
+         return $this->hasMany(Group::class, 'owner_id');
+     }
+
+     // Relationship to groups the user is a member of
+     public function groups()
+     {
+         return $this->belongsToMany(UserGroup::class)->where('status', 'accepted');  // Track membership status
+     }
+
+
+
+
+
+
+
+
+
+
+
     public function filesCheckedOut()
     {
         return $this->hasMany(File::class, 'checked_out_by');
     }
 
-    public function groups()
-    {
-        return $this->belongsToMany(Group::class, 'users_groups_pivot')
-        ->withPivot('status')  // Track membership status
-            ->withTimestamps();
-    }
+
     public function sentInvitations()
     {
         return $this->hasMany(Invitation::class, 'sender_id');
